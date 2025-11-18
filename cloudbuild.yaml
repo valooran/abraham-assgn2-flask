@@ -24,16 +24,27 @@ steps:
       - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
     id: 'push-image-latest'
 
-  # Step 4: Deploy to Compute Engine
+  # Step 4: Stop and remove old container on VM
   - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
     args:
-      - 'compute'
-      - 'instances'
-      - 'update-container'
-      - 'abraham-assgn2-flask-vm'
-      - '--zone=us-central1-a'
-      - '--container-image=gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
-    id: 'deploy-to-vm'
+      - '-c'
+      - |
+        gcloud compute ssh abraham-assgn2-flask-vm \
+          --zone=us-central1-a \
+          --command="docker stop \$(docker ps -q) 2>/dev/null || true; docker rm \$(docker ps -aq) 2>/dev/null || true"
+    id: 'stop-old-container'
+
+  # Step 5: Start new container with port mapping
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud compute ssh abraham-assgn2-flask-vm \
+          --zone=us-central1-a \
+          --command="docker run -d -p 8080:8080 --restart=always --name=flask-app gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest"
+    id: 'start-new-container'
 
 # Images to store in GCR
 images:
