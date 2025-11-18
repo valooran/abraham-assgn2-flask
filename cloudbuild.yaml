@@ -1,0 +1,55 @@
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
+      - '.'
+    id: 'build-image'
+
+  # Step 2: Push image to GCR
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:$SHORT_SHA'
+    id: 'push-image-sha'
+
+  # Step 3: Push latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
+    id: 'push-image-latest'
+
+  # Step 4: Deploy to Compute Engine
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'compute'
+      - 'instances'
+      - 'update-container'
+      - 'abraham-assgn2-flask-vm'
+      - '--zone=us-central1-a'
+      - '--container-image=gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
+    id: 'deploy-to-vm'
+
+# Images to store in GCR
+images:
+  - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/abraham-assgn2-flask-app:latest'
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout
+timeout: '600s'
+
+# Tags for organization
+tags:
+  - 'abraham-assgn2'
+  - 'flask-app'
+  - 'automated-build'
